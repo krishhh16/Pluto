@@ -21,8 +21,8 @@ pub struct CreatePool<'info> {
 pub fn create_pool(ctx: Context<CreatePool>, id: i64, mint_a: Pubkey, mint_b: Pubkey)-> Result<()> {
     ctx.accounts.liquidity_pool.set_inner(LiquidityPool {
         pool_id: id,
-        mint_a,
-        mint_b
+        mint_a: mint_a.key(),
+        mint_b: mint_b.key()
     });
 
     Ok(())
