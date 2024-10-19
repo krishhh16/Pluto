@@ -1,3 +1,3 @@
 pub mod create_pool;
 
-use create_pool::*;
+pub use create_pool::*;
