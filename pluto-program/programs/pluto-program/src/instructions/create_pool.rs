@@ -2,7 +2,6 @@ use crate::states::LiquidityPool;
 use anchor_lang::prelude::*;
 use anchor_spl::{associated_token::AssociatedToken, token::{Mint, Token, TokenAccount}};
 
-
 #[derive(Accounts)]
 #[instruction(token_authority: Pubkey)]
 pub struct CreatePool<'info> {
