@@ -16,4 +16,9 @@ pub mod pluto_program {
         create_pool(ctx)?;
         Ok(())
     }
+
+    pub fn deposit_tokens(ctx: Context<DepositLiquidity>, amount_a: u64, amount_b: u64) -> Result<()> {
+        deposit_liquidity(ctx, amount_a, amount_b)?;
+        Ok(())
+    }
 }

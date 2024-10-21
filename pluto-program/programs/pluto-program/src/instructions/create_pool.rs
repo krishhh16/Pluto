@@ -8,6 +8,7 @@ pub struct CreatePool<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
+    /// CHECK: read only authority
     #[account(
         seeds = [
             mint_a.key().as_ref(),
@@ -27,7 +28,7 @@ pub struct CreatePool<'info> {
     pub liquidity_pool: Account<'info, LiquidityPool>,
     #[account(
         init, 
-        seeds = [b"liquidity token",mint_a.key().as_ref(), mint_b.key().as_ref()],
+        seeds = [b"liquidity_token",mint_a.key().as_ref(), mint_b.key().as_ref()],
         bump,
         mint::decimals = 6,
         mint::authority = pool_authority,
