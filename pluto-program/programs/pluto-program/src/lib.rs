@@ -6,15 +6,14 @@ pub mod errors;
 pub mod constants;
 use instructions::*;
 
-declare_id!("HtdeUxcuZJffCTVipULK7gVBkYVtgG8pTGF1pjEDYWRE");
+declare_id!("FiSidDP3YkEpgPCUq5DdTsxQ97hBrLrMU2RDg6HhzPsN");
 
 #[program]
 pub mod pluto_program {
     use super::*;
 
     pub fn init_pool(ctx: Context<CreatePool>) -> Result<()> {
-        create_pool(ctx)?;
-        Ok(())
+        create_pool(ctx)
     }
 
     pub fn deposit_tokens(ctx: Context<DepositLiquidity>, amount_a: u64, amount_b: u64) -> Result<()> {

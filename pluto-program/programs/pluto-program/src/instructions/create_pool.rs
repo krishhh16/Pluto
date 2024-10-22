@@ -3,7 +3,6 @@ use anchor_lang::prelude::*;
 use anchor_spl::{associated_token::AssociatedToken, token::{Mint, Token, TokenAccount}};
 
 #[derive(Accounts)]
-#[instruction(token_authority: Pubkey)]
 pub struct CreatePool<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -23,7 +22,7 @@ pub struct CreatePool<'info> {
             seeds = [b"liquidity_pool", mint_a.key().as_ref(), mint_b.key().as_ref()],
             bump,
             payer = payer,
-            space = LiquidityPool::INIT_SPACE
+            space = LiquidityPool::INIT_SPACE + 8
         )]
     pub liquidity_pool: Account<'info, LiquidityPool>,
     #[account(

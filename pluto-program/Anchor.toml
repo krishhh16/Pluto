@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-pluto_program = "HtdeUxcuZJffCTVipULK7gVBkYVtgG8pTGF1pjEDYWRE"
+pluto_program = "FiSidDP3YkEpgPCUq5DdTsxQ97hBrLrMU2RDg6HhzPsN"
 
 [registry]
 url = "https://api.apr.dev"
