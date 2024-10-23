@@ -3,9 +3,7 @@ use anchor_spl::{
     associated_token::AssociatedToken,
     token::{self, Mint, MintTo, Token, TokenAccount, Transfer},
 };
-
 use fixed::types::I64F64;
-
 use crate::{constants::*, errors::Errors, states::*};
 
 pub fn deposit_liquidity(
@@ -61,18 +59,18 @@ pub fn deposit_liquidity(
     };
 
     // Defining liquidity which is defined as square root of the constant of the pool
-    let mut liquidity = I64F64::from_num(amount_a)
+    let liquidity = I64F64::from_num(amount_a)
         .checked_mul(I64F64::from_num(amount_b))
         .unwrap()
         .sqrt()
         .to_num::<u64>();
 
     if pool_creation {
-        if liquidity < MINIMUM_LIQUIDITY {
-            return err!(Errors::InvalidDepositAmount);
-        }
+        // if liquidity < MINIMUM_LIQUIDITY {
+        //     return err!(Errors::InvalidDepositAmount);
+        // }
 
-        liquidity -= MINIMUM_LIQUIDITY;
+        // liquidity -= MINIMUM_LIQUIDITY;
     }
 
     // Send the respective tokens to the appropriate pool accounts
@@ -87,6 +85,7 @@ pub fn deposit_liquidity(
         ),
         amount_a,
     )?;
+    msg!("Transfer amount A successful!");
 
     token::transfer(
         CpiContext::new(
@@ -100,10 +99,10 @@ pub fn deposit_liquidity(
         amount_b,
     )?;
 
+    msg!("transfer amount_b successful");
     // mint liquidity to the user
     let authority_bump = ctx.bumps.pool_authority;
     let authority_seeds = &[
-        &ctx.accounts.pool.key().to_bytes(),
         &ctx.accounts.mint_a.key().to_bytes(),
         &ctx.accounts.mint_b.key().to_bytes(),
         AUTHORITY_SEED, 
@@ -111,13 +110,15 @@ pub fn deposit_liquidity(
     ];
     let signer_seeds = &[&authority_seeds[..]];
 
+    msg!("inializing minting");
+
     token::mint_to(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             MintTo {
+                authority: ctx.accounts.pool_authority.to_account_info(),
                 mint: ctx.accounts.mint_liquidity.to_account_info(),
                 to: ctx.accounts.depositor_account_liquidity.to_account_info(),
-                authority: ctx.accounts.pool_authority.to_account_info()
             }, 
             signer_seeds
         ),
@@ -131,26 +132,27 @@ pub fn deposit_liquidity(
 pub struct DepositLiquidity<'info> {
     #[account(
         seeds = [
-            pool.mint_a.key().as_ref(),
-            pool.mint_a.key().as_ref()
+            b"liquidity_pool",
+            mint_a.key().as_ref(),
+            mint_b.key().as_ref()
         ],
         bump,
         has_one = mint_a,
         has_one = mint_b
     )]
-    pub pool: Box<Account<'info, LiquidityPool>>,
+    pub liquidity_pool: Box<Account<'info, LiquidityPool>>,
     pub mint_a: Box<Account<'info, Mint>>,
     pub mint_b: Box<Account<'info, Mint>>,
     /// CHECK: Read only authority
     #[account(
         seeds = [
-            pool.mint_a.key().as_ref(),
-            pool.mint_b.key().as_ref(),
-            b"authority"
+            liquidity_pool.mint_a.key().as_ref(),
+            liquidity_pool.mint_b.key().as_ref(),
+            b"pool_authority"
         ],
         bump
     )]
-    pub pool_authority: Box<Account<'info, TokenAccount>>,
+    pub pool_authority: AccountInfo<'info>,
     #[account(
         mut,
         associated_token::mint = mint_a,
@@ -163,7 +165,13 @@ pub struct DepositLiquidity<'info> {
         associated_token::authority = pool_authority
     )]
     pub pool_mint_b: Box<Account<'info, TokenAccount>>,
+    #[account(mut)]
     pub depositor: Signer<'info>,
+    #[account( 
+        mut,
+        seeds = [b"liquidity_token",mint_a.key().as_ref(), mint_b.key().as_ref()],
+        bump,
+    )]
     pub mint_liquidity: Box<Account<'info, Mint>>,
     #[account(
         init_if_needed,

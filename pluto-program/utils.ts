@@ -2,16 +2,20 @@ import { Keypair, PublicKey } from "@solana/web3.js"
 import { BN } from "bn.js";
 import * as anchor from "@coral-xyz/anchor"
 import { getAssociatedTokenAddressSync, createMint, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token"
+import { assert } from "chai";
 
 export async function getValues(connection: anchor.web3.Connection) {
     const id = Keypair.generate();
     const payer = Keypair.generate();
     const mintAKeypair = Keypair.generate();
     let mintBKeypair = Keypair.generate();
+    const lp = Keypair.generate();
 
     const sig = await connection.requestAirdrop(payer.publicKey, 100 * anchor.web3.LAMPORTS_PER_SOL);
+    const sig2 = await connection.requestAirdrop(lp.publicKey, 100 * anchor.web3.LAMPORTS_PER_SOL);
 
     await connection.confirmTransaction(sig);
+    await connection.confirmTransaction(sig2);
     while (new BN(mintAKeypair.publicKey.toBytes()).lt(new BN(mintBKeypair.publicKey.toBytes()))) {
         mintBKeypair = Keypair.generate();
     }
@@ -33,6 +37,45 @@ export async function getValues(connection: anchor.web3.Connection) {
         anchor.workspace.PlutoProgram.programId
     )[0]
 
+    // Create token accounts for LP
+    // await getOrCreateAssociatedTokenAccount(
+    //     connection,
+    //     lp,
+    //     mintAKeypair.publicKey,
+    //     lp.publicKey
+    //   );
+  
+    //   await getOrCreateAssociatedTokenAccount(
+    //     connection,
+    //     lp,
+    //     mintBKeypair.publicKey,
+    //     lp.publicKey
+    //   );
+  
+    //   // Create liquidity token account for LP
+    //   await getOrCreateAssociatedTokenAccount(
+    //     connection,
+    //     lp,
+    //     mintToken,
+    //     lp.publicKey
+    //   );
+
+    console.log({
+        id: id.publicKey.toString,
+        payer,
+        mintAKeypair,
+        mintBKeypair,
+        poolAuthority,
+        liquidityPool,
+        lp,
+        mintToken,
+        poolAccountA: getAssociatedTokenAddressSync(mintAKeypair.publicKey, poolAuthority, true),
+        poolAccountB: getAssociatedTokenAddressSync(mintBKeypair.publicKey, poolAuthority, true),
+        depositorLiquidity: getAssociatedTokenAddressSync(mintToken, payer.publicKey, true),
+        holderAccountA: getAssociatedTokenAddressSync(mintAKeypair.publicKey, payer.publicKey, true),
+        holderAccountB: getAssociatedTokenAddressSync(mintBKeypair.publicKey, payer.publicKey, true),
+    })
+
     return {
         id,
         payer,
@@ -40,9 +83,13 @@ export async function getValues(connection: anchor.web3.Connection) {
         mintBKeypair,
         poolAuthority,
         liquidityPool,
+        lp,
         mintToken,
         poolAccountA: getAssociatedTokenAddressSync(mintAKeypair.publicKey, poolAuthority, true),
-        poolAccountB: getAssociatedTokenAddressSync(mintBKeypair.publicKey, poolAuthority, true)
+        poolAccountB: getAssociatedTokenAddressSync(mintBKeypair.publicKey, poolAuthority, true),
+        depositorLiquidity: getAssociatedTokenAddressSync(mintToken, payer.publicKey, true),
+        holderAccountA: getAssociatedTokenAddressSync(mintAKeypair.publicKey, payer.publicKey, true),
+        holderAccountB: getAssociatedTokenAddressSync(mintBKeypair.publicKey, payer.publicKey, true),
     }
 }
 export const mintingTokens = async ({
@@ -84,4 +131,7 @@ export const mintingTokens = async ({
       creator.publicKey,
       mintedAmount * 10 ** decimals,
     );
+
+
+    assert(true);
   };

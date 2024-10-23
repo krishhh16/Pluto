@@ -24,7 +24,7 @@ pub struct CreatePool<'info> {
             payer = payer,
             space = LiquidityPool::INIT_SPACE + 8
         )]
-    pub liquidity_pool: Account<'info, LiquidityPool>,
+    pub liquidity_pool: Box<Account<'info, LiquidityPool>>,
     #[account(
         init, 
         seeds = [b"liquidity_token",mint_a.key().as_ref(), mint_b.key().as_ref()],
@@ -64,3 +64,4 @@ pub fn create_pool(ctx: Context<CreatePool>)-> Result<()> {
 
     Ok(())
 }
+
