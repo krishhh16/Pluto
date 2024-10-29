@@ -132,10 +132,10 @@ pub struct DepositLiquidity<'info> {
     #[account(
         seeds = [
             b"liquidity_pool",
-            mint_a.key().as_ref(),
-            mint_b.key().as_ref()
+            liquidity_pool.mint_a.key().as_ref(),
+            liquidity_pool.mint_b.key().as_ref()
         ],
-        bump,
+        bump = liquidity_pool.bump,
         has_one = mint_a,
         has_one = mint_b
     )]
