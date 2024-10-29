@@ -23,9 +23,8 @@ pub fn deposit_liquidity(
         amount_b
     };
 
-    let pool_a = &ctx.accounts.pool_mint_a;
-    let pool_b = &ctx.accounts.pool_mint_b;
-
+    let pool_a = &ctx.accounts.pool_account_a;
+    let pool_b = &ctx.accounts.pool_account_b;
     // Checks if there already exists liquidity in the pool or this is the first deposit in the pool
     let pool_creation = pool_a.amount == 0 && pool_b.amount == 0;
 
@@ -79,7 +78,7 @@ pub fn deposit_liquidity(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
                 from: ctx.accounts.depositor_mint_a.to_account_info(),
-                to: ctx.accounts.pool_mint_a.to_account_info(),
+                to: ctx.accounts.pool_account_a.to_account_info(),
                 authority: ctx.accounts.depositor.to_account_info(),
             },
         ),
@@ -92,7 +91,7 @@ pub fn deposit_liquidity(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
                 from: ctx.accounts.depositor_mint_b.to_account_info(),
-                to: ctx.accounts.pool_mint_b.to_account_info(),
+                to: ctx.accounts.pool_account_b.to_account_info(),
                 authority: ctx.accounts.depositor.to_account_info(),
             },
         ),
@@ -158,13 +157,13 @@ pub struct DepositLiquidity<'info> {
         associated_token::mint = mint_a,
         associated_token::authority = pool_authority
     )]
-    pub pool_mint_a: Box<Account<'info, TokenAccount>>,
+    pub pool_account_a: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         associated_token::mint = mint_b,
         associated_token::authority = pool_authority
     )]
-    pub pool_mint_b: Box<Account<'info, TokenAccount>>,
+    pub pool_account_b: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub depositor: Signer<'info>,
     #[account( 
