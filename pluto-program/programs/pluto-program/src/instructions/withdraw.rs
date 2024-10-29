@@ -13,7 +13,7 @@ use crate::{
 };
 
 
-pub fn widthdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+pub fn widthdraw_lp(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 
     let authroity_bumps = ctx.bumps.pool_authority;
     let authority_seeds = &[
@@ -21,32 +21,36 @@ pub fn widthdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         &ctx.accounts.mint_b.key().to_bytes(),
         AUTHORITY_SEED,
         &[authroity_bumps]
-    ];
-    let signer_seeds = &[&authority_seeds[..]];
+        ];
+        let signer_seeds = &[&authority_seeds[..]];
+        // amount_a=  (amount * pool_a_amount) / mintLiquidity supply
+        
+        
+        let amount_a = I64F64::from_num(amount)
+        .checked_mul(I64F64::from_num(ctx.accounts.pool_account_a.amount))
+        .unwrap()
+        .checked_div(I64F64::from_num(
+            ctx.accounts.mint_liquidity.supply + MINIMUM_LIQUIDITY
+        ))
+        .unwrap()
+        .floor()
+        .to_num::<u64>();
+    // x -> Mint existing + x, sqrt(a * b) || amount * amount_a_pool/ mintsupply    
+    msg!("amount a: {} pool_account_a: {} supply: {}, amount: {}", amount_a, ctx.accounts.pool_account_a.amount, ctx.accounts.mint_liquidity.supply, amount);
+    token::transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.pool_account_a.to_account_info(),
+                to: ctx.accounts.withdrawer_account_a.to_account_info(),
+                authority: ctx.accounts.pool_authority.to_account_info(),
+            },
+            signer_seeds,
+        ),
+        amount_a,
+    )?;
 
-    let amount_a = I64F64::from_num(amount)
-    .checked_mul(I64F64::from_num(ctx.accounts.pool_account_a.amount))
-    .unwrap()
-    .checked_div(I64F64::from_num(
-        ctx.accounts.mint_liquidity.supply + MINIMUM_LIQUIDITY,
-    ))
-    .unwrap()
-    .floor()
-    .to_num::<u64>();
-token::transfer(
-    CpiContext::new_with_signer(
-        ctx.accounts.token_program.to_account_info(),
-        Transfer {
-            from: ctx.accounts.pool_account_a.to_account_info(),
-            to: ctx.accounts.withdrawer_account_a.to_account_info(),
-            authority: ctx.accounts.pool_authority.to_account_info(),
-        },
-        signer_seeds,
-    ),
-    amount_a,
-)?;
-
-let amount_b = I64F64::from_num(amount)
+    let amount_b = I64F64::from_num(amount)
     .checked_mul(I64F64::from_num(ctx.accounts.pool_account_b.amount))
     .unwrap()
     .checked_div(I64F64::from_num(
@@ -75,7 +79,7 @@ token::burn(
         ctx.accounts.token_program.to_account_info(),
         Burn {
             mint: ctx.accounts.mint_liquidity.to_account_info(),
-            from: ctx.accounts.withdrawer_account_a.to_account_info(),
+            from: ctx.accounts.withdraw_liquidity.to_account_info(),
             authority: ctx.accounts.withdrawer.to_account_info(),
         },
     ),
@@ -128,13 +132,20 @@ pub struct Withdraw<'info> {
     #[account(
         mut, 
         associated_token::authority = pool_authority,
-        associated_token::mint  = mint_a
+        associated_token::mint  = mint_b
     )]
     pub pool_account_b: Account<'info, TokenAccount>,
     #[account(
+        init_if_needed,
+        payer = withdrawer,
+        associated_token::mint = mint_liquidity,
+        associated_token::authority = withdrawer
+    )]
+    pub withdraw_liquidity: Box<Account<'info, TokenAccount>>,
+    #[account(
         mut, 
-        associated_token::authority = pool_authority,
-        associated_token::mint  = mint_b
+        associated_token::authority = withdrawer,
+        associated_token::mint  = mint_a
     )]
     pub withdrawer_account_a: Account<'info, TokenAccount>,
     #[account(
@@ -145,6 +156,6 @@ pub struct Withdraw<'info> {
     pub withdrawer_account_b: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
-    pub system_account: Program<'info, System>,
-    pub associated_token_account: Program<'info, AssociatedToken>    
+    pub system_program: Program<'info, System>,
+    pub associated_token_program: Program<'info, AssociatedToken>    
 }

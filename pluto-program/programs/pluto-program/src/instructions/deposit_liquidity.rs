@@ -56,7 +56,7 @@ pub fn deposit_liquidity(
             )
         }
     };
-
+    
     // Defining liquidity which is defined as square root of the constant of the pool
     let liquidity = I64F64::from_num(amount_a)
         .checked_mul(I64F64::from_num(amount_b))

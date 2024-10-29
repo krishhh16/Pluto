@@ -60,21 +60,21 @@ export async function getValues(connection: anchor.web3.Connection) {
     //     lp.publicKey
     //   );
 
-    console.log({
-        id: id.publicKey.toString,
-        payer,
-        mintAKeypair,
-        mintBKeypair,
-        poolAuthority,
-        liquidityPool,
-        lp,
-        mintToken,
-        poolAccountA: getAssociatedTokenAddressSync(mintAKeypair.publicKey, poolAuthority, true),
-        poolAccountB: getAssociatedTokenAddressSync(mintBKeypair.publicKey, poolAuthority, true),
-        depositorLiquidity: getAssociatedTokenAddressSync(mintToken, payer.publicKey, true),
-        holderAccountA: getAssociatedTokenAddressSync(mintAKeypair.publicKey, payer.publicKey, true),
-        holderAccountB: getAssociatedTokenAddressSync(mintBKeypair.publicKey, payer.publicKey, true),
-    })
+    // console.log({
+    //     id: id.publicKey.toString(),
+    //     payer: payer.publicKey.toString(),
+    //     mintAKeypair,
+    //     mintBKeypair,
+    //     poolAuthority,
+    //     liquidityPool,
+    //     lp,
+    //     mintToken,
+    //     poolAccountA: getAssociatedTokenAddressSync(mintAKeypair.publicKey, poolAuthority, true),
+    //     poolAccountB: getAssociatedTokenAddressSync(mintBKeypair.publicKey, poolAuthority, true),
+    //     depositorLiquidity: getAssociatedTokenAddressSync(mintToken, payer.publicKey, true),
+    //     holderAccountA: getAssociatedTokenAddressSync(mintAKeypair.publicKey, payer.publicKey, true),
+    //     holderAccountB: getAssociatedTokenAddressSync(mintBKeypair.publicKey, payer.publicKey, true),
+    // })
 
     return {
         id,
