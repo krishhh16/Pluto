@@ -35,8 +35,7 @@ pub fn widthdraw_lp(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         .unwrap()
         .floor()
         .to_num::<u64>();
-    // x -> Mint existing + x, sqrt(a * b) || amount * amount_a_pool/ mintsupply    
-    msg!("amount a: {} pool_account_a: {} supply: {}, amount: {}", amount_a, ctx.accounts.pool_account_a.amount, ctx.accounts.mint_liquidity.supply, amount);
+      
     token::transfer(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
@@ -49,7 +48,7 @@ pub fn widthdraw_lp(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         ),
         amount_a,
     )?;
-
+    
     let amount_b = I64F64::from_num(amount)
     .checked_mul(I64F64::from_num(ctx.accounts.pool_account_b.amount))
     .unwrap()
@@ -72,6 +71,7 @@ token::transfer(
     amount_b,
 )?;
 
+msg!("amount_a: {}, amount_b: {}",amount_a, amount_b );
 // Burn the liquidity tokens
 // It will fail if the amount is invalid
 token::burn(

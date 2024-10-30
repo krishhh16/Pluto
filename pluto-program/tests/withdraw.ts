@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { PlutoProgram } from "../target/types/pluto_program";
 import { getValues, mintingTokens } from "../utils"
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAccount } from "@solana/spl-token";
 import { Keypair, PublicKey } from "@solana/web3.js"
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
@@ -24,9 +24,9 @@ interface GetValuesReturnType {
 
 
 const Amounts = {
-    amount_a: 4 * 10 ** 6,
-    amount_b: 2 * 10 ** 6,
-    withdraw: 1 * 10 ** 6
+    amount_a: 1000,
+    amount_b: 1000,
+    withdraw: 1
 }
 
 describe("Withdraw", () => {
@@ -48,51 +48,54 @@ describe("Withdraw", () => {
             mintBKeypair: vals.mintBKeypair,
           });
 
-
-        //   console.log("starting the pool")
-        await program.methods.initPool()
-        .accountsStrict({
-            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-            liquidityPool: vals.liquidityPool,
-            mintA: vals.mintAKeypair.publicKey,
-            mintB: vals.mintBKeypair.publicKey,
-            mintLiquidity: vals.mintToken,
-            payer: vals.payer.publicKey,
-            poolAccountA: vals.poolAccountA,
-            poolAccountB: vals.poolAccountB,
-            poolAuthority: vals.poolAuthority,
-            systemProgram: SYSTEM_PROGRAM_ID,
-            tokenProgram: TOKEN_PROGRAM_ID
+          //   console.log("starting the pool")
+          await program.methods.initPool()
+          .accountsStrict({
+              associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+              liquidityPool: vals.liquidityPool,
+              mintA: vals.mintAKeypair.publicKey,
+              mintB: vals.mintBKeypair.publicKey,
+              mintLiquidity: vals.mintToken,
+              payer: vals.payer.publicKey,
+              poolAccountA: vals.poolAccountA,
+              poolAccountB: vals.poolAccountB,
+              poolAuthority: vals.poolAuthority,
+              systemProgram: SYSTEM_PROGRAM_ID,
+              tokenProgram: TOKEN_PROGRAM_ID
+            })
+            .signers([vals.payer])
+            .rpc()
+            
+            // console.log("init deposit")
+            
+            await program.methods.depositTokens(new anchor.BN(Amounts.amount_a),new anchor.BN(Amounts.amount_b))
+            .accountsStrict({
+                poolAuthority: vals.poolAuthority,
+                systemProgram: SYSTEM_PROGRAM_ID,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                depositor: vals.payer.publicKey,
+                depositorAccountLiquidity: vals.depositorLiquidity,
+                depositorMintA: vals.holderAccountA,
+                depositorMintB: vals.holderAccountB,
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                liquidityPool: vals.liquidityPool,
+                mintA: vals.mintAKeypair.publicKey,
+                mintB: vals.mintBKeypair.publicKey,
+                mintLiquidity: vals.mintToken,
+                payer: vals.payer.publicKey,
+                poolAccountA: vals.poolAccountA,
+                poolAccountB: vals.poolAccountB
+            })
+            .signers([ vals.payer])
+            .rpc();
         })
-        .signers([vals.payer])
-        .rpc()
 
-        // console.log("init deposit")
-
-        await program.methods.depositTokens(new anchor.BN(Amounts.amount_a),new anchor.BN(Amounts.amount_b))
-        .accountsStrict({
-            poolAuthority: vals.poolAuthority,
-            systemProgram: SYSTEM_PROGRAM_ID,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            depositor: vals.payer.publicKey,
-            depositorAccountLiquidity: vals.depositorLiquidity,
-            depositorMintA: vals.holderAccountA,
-            depositorMintB: vals.holderAccountB,
-            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-            liquidityPool: vals.liquidityPool,
-            mintA: vals.mintAKeypair.publicKey,
-            mintB: vals.mintBKeypair.publicKey,
-            mintLiquidity: vals.mintToken,
-            payer: vals.payer.publicKey,
-            poolAccountA: vals.poolAccountA,
-            poolAccountB: vals.poolAccountB
-        })
-        .signers([ vals.payer])
-        .rpc();
-    })
-
-    it("Withdraws the tokens", async () => {
-        // console.log('init withdraw')
+        it("Withdraws the tokens", async () => {
+            // console.log('init withdraw')
+            const poolABefore = await getAccount(provider.connection, vals.holderAccountA)
+            const poolBBefore = await getAccount(provider.connection, vals.holderAccountB)
+    
+            console.log('Holder balance A before::', poolABefore.amount.toString(), "\nHolder balance B before:::", poolBBefore.amount.toString())
         await program.methods.withdrawTokens(new anchor.BN(Amounts.withdraw))
         .accountsStrict({
             poolAuthority: vals.poolAuthority,
@@ -111,11 +114,14 @@ describe("Withdraw", () => {
             withdrawLiquidity: vals.depositorLiquidity            
         })
         .signers([vals.payer])
-        .rpc()
+        .rpc();
+        const poolAAfter = await getAccount(provider.connection, vals.holderAccountA)
+        const poolBAfter = await getAccount(provider.connection, vals.holderAccountB)
 
-
-
+        console.log('Holder A before::', poolAAfter.amount.toString(), "\nHolder B before:::", poolBAfter.amount.toString(), "\n")
     })
 
 
 })
+
+
