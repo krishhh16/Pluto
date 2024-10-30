@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     token::{
+        self,
         Token,
         TokenAccount,
         Mint,
@@ -79,6 +80,128 @@ pub struct Swap<'info> {
     pub trader_ata_b: Account<'info, TokenAccount>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>
+    pub associated_token_program: Program<'info, AssociatedToken>   
+}
+
+
+pub fn swap(ctx: Context<Swap>, swap_a: bool, input_amount: u64, min_amount_out: u64) -> Result<()> {
+    // Protect from user taking in more out from the pool than they have
+    let input = if swap_a && input_amount > ctx.accounts.trader_ata_a.amount {
+        ctx.accounts.trader_ata_a.amount
+    } else if !swap_a && input_amount > ctx.accounts.trader_ata_b.amount {
+        ctx.accounts.trader_ata_b.amount
+    } else {
+        input_amount
+    };
+
+    let taxed_amount = input - input * FEE as u64 / 10_000;
+
+    let pool_a = &ctx.accounts.pool_account_a;
+    let pool_b = &ctx.accounts.pool_account_b;
     
+    let output = if swap_a {
+        I64F64::from_num(taxed_amount)
+        .checked_mul(I64F64::from_num(pool_b.amount))
+        .unwrap()
+        .checked_div(
+            I64F64::from_num(pool_a.amount)
+            .checked_add(I64F64::from_num(taxed_amount))
+            .unwrap()
+        )
+        .unwrap()
+    } else {
+        I64F64::from_num(taxed_amount)
+        .checked_mul(I64F64::from_num(pool_a.amount))
+        .unwrap()
+        .checked_div(
+            I64F64::from_num(pool_b.amount)
+            .checked_add(I64F64::from_num(taxed_amount))
+            .unwrap()
+        )
+        .unwrap()
+    };
+
+
+    if output < min_amount_out {
+        return err!(Errors::OutputTooSmall)
+    }
+
+    // Invariance = Liquidity ^ 2
+    let invariance = pool_a.amount * pool_b.amount;
+    
+    let authority_bump = ctx.bumps.pool_authority;
+    let authority_seed = &[
+        &ctx.accounts.mint_a.key().to_bytes(),
+        &ctx.accounts.mint_b.key().to_bytes(),
+        AUTHORITY_SEED,
+        &[authority_bump]
+    ];
+
+    let signer_seeds = &[&authority_seed[..]];
+
+    if swap_a {
+        token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    authority: ctx.accounts.trader.to_account_info(),
+                    from: ctx.accounts.trader_ata_a.to_account_info(),
+                    to: ctx.accounts.pool_account_a.to_account_info()
+                }
+            ),
+            input
+        )?;
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    authority: ctx.accounts.pool_authority.to_account_info(),
+                    from: ctx.accounts.pool_account_b.to_account_info(),
+                    to: ctx.accounts.trader_ata_b.to_account_info()
+                },
+                signer_seeds
+            ),
+            input
+        )?;
+    } else {
+        token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    authority: ctx.accounts.trader.to_account_info(),
+                    from: ctx.accounts.trader_ata_b.to_account_info(),
+                    to: ctx.accounts.pool_account_b.to_account_info()
+                }
+            ),
+            input
+        )?;
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    authority: ctx.accounts.pool_authority.to_account_info(),
+                    from: ctx.accounts.pool_account_a.to_account_info(),
+                    to: ctx.accounts.trader_ata_a.to_account_info()
+                },
+                signer_seeds
+            ),
+            input
+        )?;
+    }
+    msg!(
+        "Traded {} tokens ({} after fees) for {}",
+        input,
+        taxed_amount,
+        output
+    );
+
+    // Verify the invariant still holds
+    // Reload accounts because of the CPIs
+    // We tolerate if the new invariant is higher because it means a rounding error for LPs
+    ctx.accounts.pool_account_a.reload()?;
+    ctx.accounts.pool_account_b.reload()?;
+    if invariance > ctx.accounts.pool_account_a.amount * ctx.accounts.pool_account_a.amount {
+        return err!(Errors::InvarianceViolated);
+    }
+    Ok(())
 }
