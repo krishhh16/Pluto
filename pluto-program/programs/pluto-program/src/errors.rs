@@ -8,5 +8,7 @@ pub enum Errors {
     #[msg("Output amount too small")]
     OutputTooSmall,
     #[msg("Invariant violated")]
-    InvarianceViolated
+    InvarianceViolated,
+    #[msg("Invalid withdraw amount")]
+    InvalidWithdrawAmount
 }

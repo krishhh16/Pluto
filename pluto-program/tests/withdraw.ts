@@ -7,34 +7,34 @@ import { Keypair, PublicKey } from "@solana/web3.js"
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
 interface GetValuesReturnType {
-  id: Keypair;
-  payer: Keypair;
-  mintAKeypair: Keypair;
-  mintBKeypair: Keypair;
-  poolAuthority: PublicKey;
-  liquidityPool: PublicKey;
-  lp: Keypair;
-  mintToken: PublicKey;
-  poolAccountA: PublicKey;
-  poolAccountB: PublicKey;
-  holderAccountA: PublicKey;
-  holderAccountB: PublicKey;
-  depositorLiquidity: PublicKey;
+    id: Keypair;
+    payer: Keypair;
+    mintAKeypair: Keypair;
+    mintBKeypair: Keypair;
+    poolAuthority: PublicKey;
+    liquidityPool: PublicKey;
+    lp: Keypair;
+    mintToken: PublicKey;
+    poolAccountA: PublicKey;
+    poolAccountB: PublicKey;
+    holderAccountA: PublicKey;
+    holderAccountB: PublicKey;
+    depositorLiquidity: PublicKey;
 }
 
 
 const Amounts = {
-    amount_a: 1000,
-    amount_b: 1000,
-    withdraw: 1
+    amount_a: 100,
+    amount_b: 1000
 }
+
 
 describe("Withdraw", () => {
     const provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
     console.log("This is my create_pool test")
-  
-    const program = anchor.workspace.PlutoProgram as Program<PlutoProgram>;  
+
+    const program = anchor.workspace.PlutoProgram as Program<PlutoProgram>;
 
 
     let vals: GetValuesReturnType;
@@ -46,29 +46,29 @@ describe("Withdraw", () => {
             creator: vals.payer,
             mintAKeypair: vals.mintAKeypair,
             mintBKeypair: vals.mintBKeypair,
-          });
+        });
 
-          //   console.log("starting the pool")
-          await program.methods.initPool()
-          .accountsStrict({
-              associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-              liquidityPool: vals.liquidityPool,
-              mintA: vals.mintAKeypair.publicKey,
-              mintB: vals.mintBKeypair.publicKey,
-              mintLiquidity: vals.mintToken,
-              payer: vals.payer.publicKey,
-              poolAccountA: vals.poolAccountA,
-              poolAccountB: vals.poolAccountB,
-              poolAuthority: vals.poolAuthority,
-              systemProgram: SYSTEM_PROGRAM_ID,
-              tokenProgram: TOKEN_PROGRAM_ID
+        //   console.log("starting the pool")
+        await program.methods.initPool()
+            .accountsStrict({
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                liquidityPool: vals.liquidityPool,
+                mintA: vals.mintAKeypair.publicKey,
+                mintB: vals.mintBKeypair.publicKey,
+                mintLiquidity: vals.mintToken,
+                payer: vals.payer.publicKey,
+                poolAccountA: vals.poolAccountA,
+                poolAccountB: vals.poolAccountB,
+                poolAuthority: vals.poolAuthority,
+                systemProgram: SYSTEM_PROGRAM_ID,
+                tokenProgram: TOKEN_PROGRAM_ID
             })
             .signers([vals.payer])
             .rpc()
-            
-            // console.log("init deposit")
-            
-            await program.methods.depositTokens(new anchor.BN(Amounts.amount_a),new anchor.BN(Amounts.amount_b))
+
+        // console.log("init deposit")
+
+        await program.methods.depositTokens(new anchor.BN(Amounts.amount_a), new anchor.BN(Amounts.amount_b))
             .accountsStrict({
                 poolAuthority: vals.poolAuthority,
                 systemProgram: SYSTEM_PROGRAM_ID,
@@ -86,39 +86,36 @@ describe("Withdraw", () => {
                 poolAccountA: vals.poolAccountA,
                 poolAccountB: vals.poolAccountB
             })
-            .signers([ vals.payer])
+            .signers([vals.payer])
             .rpc();
-        })
+    })
 
-        it("Withdraws the tokens", async () => {
-            // console.log('init withdraw')
-            const poolABefore = await getAccount(provider.connection, vals.holderAccountA)
-            const poolBBefore = await getAccount(provider.connection, vals.holderAccountB)
-    
-            console.log('Holder balance A before::', poolABefore.amount.toString(), "\nHolder balance B before:::", poolBBefore.amount.toString())
-        await program.methods.withdrawTokens(new anchor.BN(Amounts.withdraw))
-        .accountsStrict({
-            poolAuthority: vals.poolAuthority,
-            systemProgram: SYSTEM_PROGRAM_ID,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            withdrawer: vals.payer.publicKey,
-            withdrawerAccountA: vals.holderAccountA,
-            withdrawerAccountB: vals.holderAccountB,
-            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-            liquidityPool: vals.liquidityPool,
-            mintA: vals.mintAKeypair.publicKey,
-            mintB: vals.mintBKeypair.publicKey,
-            mintLiquidity: vals.mintToken,
-            poolAccountA: vals.poolAccountA,
-            poolAccountB: vals.poolAccountB,
-            withdrawLiquidity: vals.depositorLiquidity            
-        })
-        .signers([vals.payer])
-        .rpc();
-        const poolAAfter = await getAccount(provider.connection, vals.holderAccountA)
-        const poolBAfter = await getAccount(provider.connection, vals.holderAccountB)
+    it("Take out all the liquidity from the pool", async () => {
+        const liquidity = Math.sqrt(Amounts.amount_a * Amounts.amount_b);
+        console.log("Liquidity:::",liquidity.toString())
 
-        console.log('Holder A before::', poolAAfter.amount.toString(), "\nHolder B before:::", poolBAfter.amount.toString(), "\n")
+        await program.methods.withdrawTokens(new anchor.BN(liquidity))
+            .accountsStrict({
+                poolAuthority: vals.poolAuthority,
+                systemProgram: SYSTEM_PROGRAM_ID,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                withdrawer: vals.payer.publicKey,
+                withdrawerAccountA: vals.holderAccountA,
+                withdrawerAccountB: vals.holderAccountB,
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                liquidityPool: vals.liquidityPool,
+                mintA: vals.mintAKeypair.publicKey,
+                mintB: vals.mintBKeypair.publicKey,
+                mintLiquidity: vals.mintToken,
+                poolAccountA: vals.poolAccountA,
+                poolAccountB: vals.poolAccountB,
+                withdrawLiquidity: vals.depositorLiquidity
+            })
+            .signers([vals.payer])
+            .rpc();
+
+        console.log("took out all the funds from the ")
+        // console.log('Holder A before::', poolAAfter.amount.toString(), "\nHolder B before:::", poolBAfter.amount.toString(), "\n")
     })
 
 

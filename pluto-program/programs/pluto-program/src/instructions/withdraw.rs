@@ -9,11 +9,14 @@ use fixed::types::I64F64;
 
 use crate::{
     constants::*,
-    states::*
+    states::*,
+    errors::Errors
 };
 
 
 pub fn widthdraw_lp(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+
+    require!(ctx.accounts.withdraw_liquidity.amount >= amount,Errors::InvalidWithdrawAmount); // Checks if the user is trying to call the function with liquidity amount more that they own
 
     let authroity_bumps = ctx.bumps.pool_authority;
     let authority_seeds = &[
