@@ -5,6 +5,7 @@ import { getValues, mintingTokens } from "../utils"
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAccount } from "@solana/spl-token";
 import { Keypair, PublicKey } from "@solana/web3.js"
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
+import { assert } from "chai";
 
 interface GetValuesReturnType {
     id: Keypair;
@@ -90,9 +91,9 @@ describe("Withdraw", () => {
             .rpc();
     })
 
-    it("Take out all the liquidity from the pool", async () => {
+    it("Take out Max liquidity from the pool", async () => {
         const liquidity = Math.sqrt(Amounts.amount_a * Amounts.amount_b);
-        console.log("Liquidity:::",liquidity.toString())
+        console.log("Liquidity:::", liquidity.toString())
 
         await program.methods.withdrawTokens(new anchor.BN(liquidity))
             .accountsStrict({
@@ -114,8 +115,37 @@ describe("Withdraw", () => {
             .signers([vals.payer])
             .rpc();
 
-        console.log("took out all the funds from the ")
-        // console.log('Holder A before::', poolAAfter.amount.toString(), "\nHolder B before:::", poolBAfter.amount.toString(), "\n")
+        assert(true, "took out all the funds from the ")
+    })
+    it("Doesn't allow more liquidity to move than the LP themselves own", async () => {
+        const liquidity = Math.sqrt(Amounts.amount_a * Amounts.amount_b);
+        console.log("Liquidity:::", liquidity.toString())
+        try {
+            await program.methods.withdrawTokens(new anchor.BN(liquidity + 100))
+                .accountsStrict({
+                    poolAuthority: vals.poolAuthority,
+                    systemProgram: SYSTEM_PROGRAM_ID,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    withdrawer: vals.payer.publicKey,
+                    withdrawerAccountA: vals.holderAccountA,
+                    withdrawerAccountB: vals.holderAccountB,
+                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                    liquidityPool: vals.liquidityPool,
+                    mintA: vals.mintAKeypair.publicKey,
+                    mintB: vals.mintBKeypair.publicKey,
+                    mintLiquidity: vals.mintToken,
+                    poolAccountA: vals.poolAccountA,
+                    poolAccountB: vals.poolAccountB,
+                    withdrawLiquidity: vals.depositorLiquidity
+                })
+                .signers([vals.payer])
+                .rpc()
+
+            assert(false, "Expected program to fail")
+
+        } catch (err) {
+            assert(true, "Successfully failed with the error:")
+        }
     })
 
 
