@@ -26,4 +26,8 @@ pub mod pluto_program {
     pub fn withdraw_tokens(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         widthdraw_lp(ctx, amount)
     }
+
+    pub fn swap_tokens(ctx: Context<Swap>, swap_a: bool, input_amount: u64, min_amount_out: u64) -> Result<()> {
+        swap(ctx, swap_a, input_amount, min_amount_out)
+    }
 }

@@ -94,7 +94,7 @@ pub fn swap(ctx: Context<Swap>, swap_a: bool, input_amount: u64, min_amount_out:
         input_amount
     };
 
-    let taxed_amount = input - input * FEE as u64 / 10_000;
+    let taxed_amount = input - (input * FEE as u64 / 10_000);
 
     let pool_a = &ctx.accounts.pool_account_a;
     let pool_b = &ctx.accounts.pool_account_b;
