@@ -112,6 +112,26 @@ describe("Withdraw", () => {
         })
         .signers([vals.payer])
     })
+    it("Swaps B", async () => {
+        await program.methods.swapTokens(false, new anchor.BN(Amounts.amount_a - 50), new anchor.BN(50))
+        .accountsStrict({
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            liquidityPool: vals.liquidityPool,
+            mintA: vals.mintAKeypair.publicKey,
+            mintB: vals.mintBKeypair.publicKey,
+            mintLiquidity: vals.mintToken,
+            poolAccountA: vals.poolAccountA,
+            poolAccountB: vals.poolAccountB,
+            poolAuthority: vals.poolAuthority,
+            systemProgram: SYSTEM_PROGRAM_ID,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            trader: vals.payer.publicKey,
+            traderAtaA: vals.holderAccountA,
+            traderAtaB: vals.holderAccountB
+        })
+        .signers([vals.payer])
+    })
+
 })
 
 
