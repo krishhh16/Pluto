@@ -181,7 +181,7 @@ let authority_seed = &[
                     to: ctx.accounts.trader_ata_a.to_account_info()
                 },
                 signer_seeds
-            ),
+            ),      
             input
         )?;
     }

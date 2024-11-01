@@ -173,18 +173,18 @@ describe("Swap", () => {
         ))
 
 
-        console.log("before::", new BN(traderAccountABefore.amount.toString()).toString(),
-            "\nAfter::", new BN(traderAccountAAfter.amount.toString()).toString())
+        console.log("trader a before::", new BN(traderAccountABefore.amount.toString()).toString(),
+            "\ntrader a After::", new BN(traderAccountAAfter.amount.toString()).toString())
 
-        console.log("Pool before::", new BN(poolAccountABefore.amount.toString()).toString(),
-            "\nAfter::", new BN(poolAccountAAfter.amount.toString()).toString())
-
-        // assert(
-        //     new BN(traderAccountAAfter.amount.toString()).eq(
-        //         new BN(traderAccountABefore.amount.toString()).sub(outputA)
-        //     ),
-        //     "The output amount should have been deducted from the trader's ATA"
-        // )
+        console.log("Pool a before::", new BN(poolAccountABefore.amount.toString()).toString(),
+            "\nPool a After::", new BN(poolAccountAAfter.amount.toString()).toString())
+        console.log("output:", outputA.toString())
+        assert(
+            new BN(traderAccountAAfter.amount.toString()).eq(
+                new BN(traderAccountABefore.amount.toString()).sub(swapAmountA)
+            ),
+            "The output amount should have been deducted from the trader's ATA"
+        )
     })
 
 })
