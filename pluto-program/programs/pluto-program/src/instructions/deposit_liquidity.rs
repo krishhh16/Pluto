@@ -4,7 +4,7 @@ use anchor_spl::{
     token::{self, Mint, MintTo, Token, TokenAccount, Transfer},
 };
 use fixed::types::I64F64;
-use crate::{constants::*, states::*};
+use crate::{constants::*, states::*, constants::MINIMUM_LIQUIDITY, errors::Errors};
 
 pub fn deposit_liquidity(
     ctx: Context<DepositLiquidity>,
@@ -58,18 +58,18 @@ pub fn deposit_liquidity(
     };
     
     // Defining liquidity which is defined as square root of the constant of the pool
-    let liquidity = I64F64::from_num(amount_a)
+    let mut liquidity = I64F64::from_num(amount_a)
         .checked_mul(I64F64::from_num(amount_b))
         .unwrap()
         .sqrt()
         .to_num::<u64>();
 
     if pool_creation {
-        // if liquidity < MINIMUM_LIQUIDITY {
-        //     return err!(Errors::InvalidDepositAmount);
-        // }
+        if liquidity < MINIMUM_LIQUIDITY {
+            return err!(Errors::InvalidDepositAmount);
+        }
 
-        // liquidity -= MINIMUM_LIQUIDITY;
+        liquidity -= MINIMUM_LIQUIDITY;
     }
 
     // Send the respective tokens to the appropriate pool accounts
