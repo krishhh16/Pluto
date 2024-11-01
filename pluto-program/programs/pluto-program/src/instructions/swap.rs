@@ -48,36 +48,34 @@ pub struct Swap<'info> {
     bump
      )]
     pub pool_authority: AccountInfo<'info>,
-    #[account(mut)]
-    pub mint_a: Account<'info, Mint>,
-    #[account(mut)]
-    pub mint_b: Account<'info, Mint>,
+    pub mint_a: Box<Account<'info, Mint>>,
+    pub mint_b: Box<Account<'info, Mint>>,
     #[account(
         mut, 
         associated_token::authority = pool_authority,
         associated_token::mint  = mint_a
     )]
-    pub pool_account_a: Account<'info, TokenAccount>,
+    pub pool_account_a: Box<Account<'info, TokenAccount>>,
     #[account(
         mut, 
         associated_token::authority = pool_authority,
         associated_token::mint  = mint_b
     )]
-    pub pool_account_b: Account<'info, TokenAccount>,
+    pub pool_account_b: Box<Account<'info, TokenAccount>>,
     #[account(
         init_if_needed, 
         payer = trader,
         associated_token::mint = mint_a,
         associated_token::authority = trader
     )]
-    pub trader_ata_a: Account<'info, TokenAccount>,
+    pub trader_ata_a: Box<Account<'info, TokenAccount>>,
     #[account(
         init_if_needed, 
         payer = trader,
         associated_token::mint = mint_b,
         associated_token::authority = trader
     )]
-    pub trader_ata_b: Account<'info, TokenAccount>,
+    pub trader_ata_b: Box<Account<'info, TokenAccount>>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>   
@@ -93,9 +91,8 @@ pub fn swap(ctx: Context<Swap>, swap_a: bool, input_amount: u64, min_amount_out:
     } else {
         input_amount
     };
-
+    
     let taxed_amount = input - (input * FEE as u64 / 10_000);
-
     let pool_a = &ctx.accounts.pool_account_a;
     let pool_b = &ctx.accounts.pool_account_b;
     
@@ -119,28 +116,28 @@ pub fn swap(ctx: Context<Swap>, swap_a: bool, input_amount: u64, min_amount_out:
             .unwrap()
         )
         .unwrap()
-    };
-
-
-    if output < min_amount_out {
-        return err!(Errors::OutputTooSmall)
     }
+    .to_num::<u64>();
 
-    // Invariance = Liquidity ^ 2
-    let invariance = pool_a.amount * pool_b.amount;
-    
-    let authority_bump = ctx.bumps.pool_authority;
-    let authority_seed = &[
-        &ctx.accounts.mint_a.key().to_bytes(),
-        &ctx.accounts.mint_b.key().to_bytes(),
-        AUTHORITY_SEED,
-        &[authority_bump]
+if output < min_amount_out {
+    return err!(Errors::OutputTooSmall)
+}
+let invariance = pool_a.amount * pool_b.amount;
+msg!("Ran till here");
+msg!("mint_a: {:?}", ctx.accounts.mint_a.key());
+let authority_bump = ctx.bumps.pool_authority;
+let authority_seed = &[
+    &ctx.accounts.mint_a.key().to_bytes(),
+    &ctx.accounts.mint_b.key().to_bytes(),
+    AUTHORITY_SEED,
+    &[authority_bump]
     ];
-
+    msg!("Don't run till here");
+    
     let signer_seeds = &[&authority_seed[..]];
-
-    if swap_a {
-        token::transfer(
+        
+        if swap_a {
+            token::transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
                 Transfer {
@@ -194,7 +191,6 @@ pub fn swap(ctx: Context<Swap>, swap_a: bool, input_amount: u64, min_amount_out:
         taxed_amount,
         output
     );
-
     // Verify the invariant still holds
     // Reload accounts because of the CPIs
     // We tolerate if the new invariant is higher because it means a rounding error for LPs
