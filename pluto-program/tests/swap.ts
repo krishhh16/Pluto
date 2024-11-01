@@ -138,7 +138,7 @@ describe("Swap", () => {
         const poolAccountABefore = await getAccount(provider.connection, vals.poolAccountA);
         const poolAccountBBefore = await getAccount(provider.connection, vals.poolAccountB);
         const traderAccountABefore = await getAccount(provider.connection, vals.holderAccountA);
-        const traderAccountBBerfore = await getAccount(provider.connection, vals.holderAccountB);
+        const traderAcocuntBBefore = await getAccount(provider.connection, vals.holderAccountB);
 
 
         await program.methods.swapTokens(true, swapAmountA, new anchor.BN(30))
@@ -161,7 +161,7 @@ describe("Swap", () => {
             .rpc()
 
         const poolAccountAAfter = await getAccount(provider.connection, vals.poolAccountA);
-        const poolAccountBAfter = await getAccount(provider.connection, vals.poolAccountB);
+        const poolAccountBAfter =  await getAccount(provider.connection, vals.poolAccountB);
         const traderAccountAAfter = await getAccount(provider.connection, vals.holderAccountA);
         const traderAccountBAfter = await getAccount(provider.connection, vals.holderAccountB);
 
@@ -173,18 +173,34 @@ describe("Swap", () => {
         ))
 
 
-        console.log("trader a before::", new BN(traderAccountABefore.amount.toString()).toString(),
-            "\ntrader a After::", new BN(traderAccountAAfter.amount.toString()).toString())
-
-        console.log("Pool a before::", new BN(poolAccountABefore.amount.toString()).toString(),
-            "\nPool a After::", new BN(poolAccountAAfter.amount.toString()).toString())
-        console.log("output:", outputA.toString())
         assert(
             new BN(traderAccountAAfter.amount.toString()).eq(
                 new BN(traderAccountABefore.amount.toString()).sub(swapAmountA)
             ),
             "The output amount should have been deducted from the trader's ATA"
         )
+
+        assert(
+            new BN(traderAccountBAfter.amount.toString()).eq(
+                new BN(traderAcocuntBBefore.amount.toString()).add(outputA)
+            ),
+            "output should've been added to the B ata"
+        )
+
+        assert(
+            new BN(poolAccountAAfter.amount.toString()).eq(
+                new BN(poolAccountABefore.amount.toString()).add(swapAmountA)
+            ),
+            "Pool A should've gained the appropriate amount of tokens"
+        )
+
+        assert(
+            new BN(poolAccountBAfter.amount.toString()).eq(
+                new BN(poolAccountBBefore.amount.toString()).sub(outputA)
+            ),
+            "Pool B's token should've deducted with the accurate amount"
+        )
+
     })
 
 })

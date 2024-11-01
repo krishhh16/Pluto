@@ -123,8 +123,7 @@ if output < min_amount_out {
     return err!(Errors::OutputTooSmall)
 }
 let invariance = pool_a.amount * pool_b.amount;
-msg!("Ran till here");
-msg!("mint_a: {:?}", ctx.accounts.mint_a.key());
+
 let authority_bump = ctx.bumps.pool_authority;
 let authority_seed = &[
     &ctx.accounts.mint_a.key().to_bytes(),
@@ -132,7 +131,6 @@ let authority_seed = &[
     AUTHORITY_SEED,
     &[authority_bump]
     ];
-    msg!("Don't run till here");
     
     let signer_seeds = &[&authority_seed[..]];
         
@@ -158,7 +156,7 @@ let authority_seed = &[
                 },
                 signer_seeds
             ),
-            input
+            output
         )?;
     } else {
         token::transfer(
@@ -182,7 +180,7 @@ let authority_seed = &[
                 },
                 signer_seeds
             ),      
-            input
+            output
         )?;
     }
     msg!(
