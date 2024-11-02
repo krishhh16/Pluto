@@ -6,7 +6,7 @@ use anchor_spl::{
 };
 
 use fixed::types::I64F64;
-
+use half::f16;
 use crate::{
     constants::*,
     states::*,
@@ -17,6 +17,8 @@ use crate::{
 pub fn widthdraw_lp(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 
     require!(ctx.accounts.withdraw_liquidity.amount >= amount,Errors::InvalidWithdrawAmount); // Checks if the user is trying to call the function with liquidity amount more that they own
+    let pool_a_initial = ctx.accounts.pool_account_a.amount;
+    let pool_b_initial = ctx.accounts.pool_account_b.amount;
 
     let authroity_bumps = ctx.bumps.pool_authority;
     let authority_seeds = &[
@@ -25,11 +27,11 @@ pub fn widthdraw_lp(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         AUTHORITY_SEED,
         &[authroity_bumps]
         ];
-        let signer_seeds = &[&authority_seeds[..]];
-        // amount_a=  (amount * pool_a_amount) / mintLiquidity supply
+    let signer_seeds = &[&authority_seeds[..]];
         
-        
-        let amount_a = I64F64::from_num(amount)
+    
+
+    let amount_a = I64F64::from_num(amount)
         .checked_mul(I64F64::from_num(ctx.accounts.pool_account_a.amount))
         .unwrap()
         .checked_div(I64F64::from_num(
@@ -61,7 +63,7 @@ pub fn widthdraw_lp(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     .unwrap()
     .floor()
     .to_num::<u64>();
-token::transfer(
+    token::transfer(
     CpiContext::new_with_signer(
         ctx.accounts.token_program.to_account_info(),
         Transfer {
@@ -74,10 +76,10 @@ token::transfer(
     amount_b,
 )?;
 
-msg!("amount_a: {}, amount_b: {}",amount_a, amount_b );
-// Burn the liquidity tokens
-// It will fail if the amount is invalid
-token::burn(
+    
+    // Burn the liquidity tokens
+    // It will fail if the amount is invalid
+    token::burn(
     CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Burn {
@@ -87,9 +89,20 @@ token::burn(
         },
     ),
     amount,
-)?;
+    )?;
 
-Ok(())
+    ctx.accounts.pool_account_a.reload()?;
+    ctx.accounts.pool_account_b.reload()?;
+
+    // stores the new delta of the pool
+    let delta: f16 = f16::from_f32(
+        (pool_a_initial as f32 / pool_b_initial as f32) // Tokens before deposit 
+        / (ctx.accounts.pool_account_a.amount as f32 / ctx.accounts.pool_account_b.amount as f32) // Amount of tokens after the deposit
+     );
+    let delta_bits = delta.to_bits();
+    ctx.accounts.liquidity_pool.delta = delta_bits;
+
+    Ok(())
 
 }
 
