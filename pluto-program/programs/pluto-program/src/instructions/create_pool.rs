@@ -57,10 +57,12 @@ pub struct CreatePool<'info> {
 }
 
 pub fn create_pool(ctx: Context<CreatePool>)-> Result<()> {
+
     ctx.accounts.liquidity_pool.set_inner(LiquidityPool {
         mint_a: ctx.accounts.mint_a.key(),
         mint_b: ctx.accounts.mint_b.key(),
-        bump: ctx.bumps.liquidity_pool
+        bump: ctx.bumps.liquidity_pool,
+        delta: 0
     });
 
     Ok(())
