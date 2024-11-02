@@ -51,7 +51,6 @@ describe("Swap", () => {
             mintBKeypair: vals.mintBKeypair,
         });
 
-        //   console.log("starting the pool")
         await program.methods.initPool()
             .accountsStrict({
                 associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -69,7 +68,6 @@ describe("Swap", () => {
             .signers([vals.payer])
             .rpc()
 
-        // console.log("init deposit")
 
         await program.methods.depositTokens(new anchor.BN(Amounts.amount_a), new anchor.BN(Amounts.amount_b))
             .accountsStrict({
@@ -93,45 +91,46 @@ describe("Swap", () => {
             .rpc();
     })
 
-    // it("Swaps A", async () => {
-    //     await program.methods.swapTokens(true, swapAmountA, new anchor.BN(50))
-    //         .accountsStrict({
-    //             associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-    //             liquidityPool: vals.liquidityPool,
-    //             mintA: vals.mintAKeypair.publicKey,
-    //             mintB: vals.mintBKeypair.publicKey,
-    //             mintLiquidity: vals.mintToken,
-    //             poolAccountA: vals.poolAccountA,
-    //             poolAccountB: vals.poolAccountB,
-    //             poolAuthority: vals.poolAuthority,
-    //             systemProgram: SYSTEM_PROGRAM_ID,
-    //             tokenProgram: TOKEN_PROGRAM_ID,
-    //             trader: vals.payer.publicKey,
-    //             traderAtaA: vals.holderAccountA,
-    //             traderAtaB: vals.holderAccountB
-    //         })
-    //         .signers([vals.payer])
-    // })
-    // it("Swaps B", async () => {
-    //     await program.methods.swapTokens(false, swapAmountB, new anchor.BN(50))
-    //         .accountsStrict({
-    //             associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-    //             liquidityPool: vals.liquidityPool,
-    //             mintA: vals.mintAKeypair.publicKey,
-    //             mintB: vals.mintBKeypair.publicKey,
-    //             mintLiquidity: vals.mintToken,
-    //             poolAccountA: vals.poolAccountA,
-    //             poolAccountB: vals.poolAccountB,
-    //             poolAuthority: vals.poolAuthority,
-    //             systemProgram: SYSTEM_PROGRAM_ID,
-    //             tokenProgram: TOKEN_PROGRAM_ID,
-    //             trader: vals.payer.publicKey,
-    //             traderAtaA: vals.holderAccountA,
-    //             traderAtaB: vals.holderAccountB
-    //         })
-    //         .signers([vals.payer])
-                // .rpc()
-    // })
+    it("Swaps A", async () => {
+        await program.methods.swapTokens(true, swapAmountA, new anchor.BN(50))
+            .accountsStrict({
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                liquidityPool: vals.liquidityPool,
+                mintA: vals.mintAKeypair.publicKey,
+                mintB: vals.mintBKeypair.publicKey,
+                mintLiquidity: vals.mintToken,
+                poolAccountA: vals.poolAccountA,
+                poolAccountB: vals.poolAccountB,
+                poolAuthority: vals.poolAuthority,
+                systemProgram: SYSTEM_PROGRAM_ID,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                trader: vals.payer.publicKey,
+                traderAtaA: vals.holderAccountA,
+                traderAtaB: vals.holderAccountB
+            })
+            .signers([vals.payer])
+            .rpc()
+    })
+    it("Swaps B", async () => {
+        await program.methods.swapTokens(false, swapAmountB, new anchor.BN(50))
+            .accountsStrict({
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                liquidityPool: vals.liquidityPool,
+                mintA: vals.mintAKeypair.publicKey,
+                mintB: vals.mintBKeypair.publicKey,
+                mintLiquidity: vals.mintToken,
+                poolAccountA: vals.poolAccountA,
+                poolAccountB: vals.poolAccountB,
+                poolAuthority: vals.poolAuthority,
+                systemProgram: SYSTEM_PROGRAM_ID,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                trader: vals.payer.publicKey,
+                traderAtaA: vals.holderAccountA,
+                traderAtaB: vals.holderAccountB
+            })
+            .signers([vals.payer])
+            .rpc()
+    })
 
     it("confirms if the swap A amount was diduced from the pool", async () => {
 
@@ -172,28 +171,28 @@ describe("Swap", () => {
             new BN(poolAccountABefore.amount.toString()).add(taxedAmount)
         ))
 
-
+        // Checks if the right amount of tokens were deducted from trader ata A
         assert(
             new BN(traderAccountAAfter.amount.toString()).eq(
-                new BN(traderAccountABefore.amount.toString()).sub(swapAmountA)
+                new BN(traderAccountABefore.amount.toString()).sub(swapAmountA) 
             ),
             "The output amount should have been deducted from the trader's ATA"
         )
-
+        // Checks if the right amount of tokens were added to trader ata B
         assert(
             new BN(traderAccountBAfter.amount.toString()).eq(
                 new BN(traderAcocuntBBefore.amount.toString()).add(outputA)
             ),
             "output should've been added to the B ata"
         )
-
+        // Checks if the right amount of tokens were added to Pool ATA A
         assert(
             new BN(poolAccountAAfter.amount.toString()).eq(
                 new BN(poolAccountABefore.amount.toString()).add(swapAmountA)
             ),
             "Pool A should've gained the appropriate amount of tokens"
         )
-
+        // Checks if the right amount of tokens were deducted from pool ata B
         assert(
             new BN(poolAccountBAfter.amount.toString()).eq(
                 new BN(poolAccountBBefore.amount.toString()).sub(outputA)
@@ -202,6 +201,8 @@ describe("Swap", () => {
         )
 
     })
+
+
 
 })
 
