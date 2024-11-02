@@ -4,6 +4,7 @@ use anchor_spl::{
     token::{self, Mint, MintTo, Token, TokenAccount, Transfer},
 };
 use fixed::types::I64F64;
+use half::f16;
 use crate::{constants::*, states::*, constants::MINIMUM_LIQUIDITY, errors::Errors};
 
 pub fn deposit_liquidity(
@@ -27,7 +28,8 @@ pub fn deposit_liquidity(
     let pool_b = &ctx.accounts.pool_account_b;
     // Checks if there already exists liquidity in the pool or this is the first deposit in the pool
     let pool_creation = pool_a.amount == 0 && pool_b.amount == 0;
-
+    let pool_a_initial = pool_a.amount;
+    let pool_b_initial = pool_b.amount;
     //Assign amount_a and amount_b based on the constant of the pool so that the proportion of the pool remains the same and isn't disturbed due to
     // the additional deposit
     let (amount_a, amount_b) = if pool_creation {
@@ -56,35 +58,37 @@ pub fn deposit_liquidity(
             )
         }
     };
+
+    // Define delta after deposit
     
     // Defining liquidity which is defined as square root of the constant of the pool
     let mut liquidity = I64F64::from_num(amount_a)
-        .checked_mul(I64F64::from_num(amount_b))
-        .unwrap()
-        .sqrt()
-        .to_num::<u64>();
+    .checked_mul(I64F64::from_num(amount_b))
+    .unwrap()
+    .sqrt()
+    .to_num::<u64>();
 
-    if pool_creation {
-        if liquidity < MINIMUM_LIQUIDITY {
-            return err!(Errors::InvalidDepositAmount);
-        }
-
-        liquidity -= MINIMUM_LIQUIDITY;
+if pool_creation {
+    if liquidity < MINIMUM_LIQUIDITY {
+        return err!(Errors::InvalidDepositAmount);
     }
+    
+    liquidity -= MINIMUM_LIQUIDITY;
+}
 
-    // Send the respective tokens to the appropriate pool accounts
-    token::transfer(
-        CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.depositor_mint_a.to_account_info(),
-                to: ctx.accounts.pool_account_a.to_account_info(),
-                authority: ctx.accounts.depositor.to_account_info(),
-            },
-        ),
-        amount_a,
-    )?;
-    msg!("Transfer amount A successful!");
+// Send the respective tokens to the appropriate pool accounts
+token::transfer(
+    CpiContext::new(
+        ctx.accounts.token_program.to_account_info(),
+        Transfer {
+            from: ctx.accounts.depositor_mint_a.to_account_info(),
+            to: ctx.accounts.pool_account_a.to_account_info(),
+            authority: ctx.accounts.depositor.to_account_info(),
+        },
+    ),
+    amount_a,
+)?;
+msg!("Transfer amount A successful!");
 
     token::transfer(
         CpiContext::new(
@@ -97,7 +101,7 @@ pub fn deposit_liquidity(
         ),
         amount_b,
     )?;
-
+    
     msg!("transfer amount_b successful");
     // mint liquidity to the user
     let authority_bump = ctx.bumps.pool_authority;
@@ -106,27 +110,40 @@ pub fn deposit_liquidity(
         &ctx.accounts.mint_b.key().to_bytes(),
         AUTHORITY_SEED, 
         &[authority_bump]
-    ];
-    let signer_seeds = &[&authority_seeds[..]];
+        ];
+        let signer_seeds = &[&authority_seeds[..]];
+        
+        msg!("inializing minting");
+        
+        token::mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                MintTo {
+                    authority: ctx.accounts.pool_authority.to_account_info(),
+                    mint: ctx.accounts.mint_liquidity.to_account_info(),
+                    to: ctx.accounts.depositor_account_liquidity.to_account_info(),
+                }, 
+                signer_seeds
+            ),
+            liquidity
+        )?;
 
-    msg!("inializing minting");
-
-    token::mint_to(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            MintTo {
-                authority: ctx.accounts.pool_authority.to_account_info(),
-                mint: ctx.accounts.mint_liquidity.to_account_info(),
-                to: ctx.accounts.depositor_account_liquidity.to_account_info(),
-            }, 
-            signer_seeds
-        ),
-        liquidity
-    )?;
-
-    Ok(())
-}
-
+        if !pool_creation {
+            ctx.accounts.pool_account_a.reload()?;
+            ctx.accounts.pool_account_b.reload()?;
+    
+    
+            let delta: f16 = f16::from_f32(
+                (pool_a_initial as f32 / pool_b_initial as f32) // Tokens before deposit 
+                / (ctx.accounts.pool_account_a.amount as f32 / ctx.accounts.pool_account_b.amount as f32) // Amount of tokens after the deposit
+             );
+            let delta_bits = delta.to_bits();
+            ctx.accounts.liquidity_pool.delta = delta_bits;
+        }
+        
+        Ok(())
+    }
+    
 #[derive(Accounts)]
 pub struct DepositLiquidity<'info> {
     #[account(
