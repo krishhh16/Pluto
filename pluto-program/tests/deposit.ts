@@ -235,6 +235,56 @@ describe("pluto-program", () => {
             "Expected the Pool's balance to be incremented by the depositor's entire balance"
         )
 
+    })
+
+    it("Checks if the pools have the inital amounts in the first deposit as expected", async () => {
+
+        const poolAcocuntABefore = await getAccount(provider.connection, vals.poolAccountA)
+        const poolAcocuntBBefore = await getAccount(provider.connection, vals.poolAccountB)
+        
+        await program.methods.depositTokens(new anchor.BN(Amounts.amount_a), new anchor.BN(Amounts.amount_b)) // First deposit will deposit the same proportion of both the tokens to the program
+        .accountsStrict({
+            poolAuthority: vals.poolAuthority,
+            systemProgram: SYSTEM_PROGRAM_ID,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            depositor: vals.payer.publicKey,
+            depositorAccountLiquidity: vals.depositorLiquidity,
+            depositorMintA: vals.holderAccountA,
+            depositorMintB: vals.holderAccountB,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            liquidityPool: vals.liquidityPool,
+            mintA: vals.mintAKeypair.publicKey,
+            mintB: vals.mintBKeypair.publicKey,
+            mintLiquidity: vals.mintToken,
+            payer: vals.payer.publicKey,
+            poolAccountA: vals.poolAccountA,
+            poolAccountB: vals.poolAccountB
+        })
+        .signers([vals.payer])
+        .rpc();
+    
+        const poolAcocuntAAfter = await getAccount(provider.connection, vals.poolAccountA)
+        const poolAcocuntBAfter = await getAccount(provider.connection, vals.poolAccountB)
+        
+        assert(
+            new BN(
+                poolAcocuntAAfter.amount.toString()
+            ).eq(
+                new BN(
+                    Amounts.amount_a
+                )
+            )
+            &&
+            new BN(
+                poolAcocuntBAfter.amount.toString()
+            ).eq(
+                new BN(
+                    Amounts.amount_b
+                )
+            ),
+            "Amounts deposited is not equal to the amount deposited"
+
+        )
 
     })
 
