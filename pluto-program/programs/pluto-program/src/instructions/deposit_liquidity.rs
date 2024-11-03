@@ -88,7 +88,6 @@ token::transfer(
     ),
     amount_a,
 )?;
-msg!("Transfer amount A successful!");
 
     token::transfer(
         CpiContext::new(
@@ -102,7 +101,6 @@ msg!("Transfer amount A successful!");
         amount_b,
     )?;
     
-    msg!("transfer amount_b successful");
     // mint liquidity to the user
     let authority_bump = ctx.bumps.pool_authority;
     let authority_seeds = &[
@@ -113,7 +111,6 @@ msg!("Transfer amount A successful!");
         ];
         let signer_seeds = &[&authority_seeds[..]];
         
-        msg!("inializing minting");
         
         token::mint_to(
             CpiContext::new_with_signer(
@@ -147,6 +144,7 @@ msg!("Transfer amount A successful!");
 #[derive(Accounts)]
 pub struct DepositLiquidity<'info> {
     #[account(
+        mut,
         seeds = [
             b"liquidity_pool",
             liquidity_pool.mint_a.key().as_ref(),

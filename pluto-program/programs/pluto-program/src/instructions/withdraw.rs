@@ -111,6 +111,7 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub withdrawer: Signer<'info>,
     #[account(
+    mut,
         seeds = [
             b"liquidity_pool",
             liquidity_pool.mint_a.key().as_ref(),

@@ -23,6 +23,7 @@ pub struct Swap<'info> {
     #[account(mut)]
     pub trader: Signer<'info>,
     #[account(
+        mut,
         seeds = [
             b"liquidity_pool",
             liquidity_pool.mint_a.key().as_ref(),
@@ -98,7 +99,7 @@ pub fn swap(ctx: Context<Swap>, swap_a: bool, input_amount: u64, min_amount_out:
 
     let fee = calculate_fee(ctx.accounts.liquidity_pool.delta);
 
-    let taxed_amount = input - (input * fee as u64 / 10_000);
+    let taxed_amount = (input * fee)/ 1000;
     let pool_a = &ctx.accounts.pool_account_a;
     let pool_b = &ctx.accounts.pool_account_b;
     
@@ -217,7 +218,13 @@ let authority_seed = &[
 
 
 fn calculate_fee(delta: u16) -> u64 {
+    let delta_formatted =  f16::from_bits(delta);
 
+    if delta_formatted > f16::from_f32(-0.25) && delta_formatted < f16::from_f32(0.33) {
+        return 3;
+    } if delta_formatted > f16::from_f32(-0.25) && delta_formatted < f16::from_f32(0.33) {
+
+    }
 
     2
 }
